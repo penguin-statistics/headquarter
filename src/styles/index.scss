@@ -1,0 +1,6 @@
+@import '@elastic/eui/src/themes/amsterdam/colors_light';
+@import '@elastic/eui/src/themes/amsterdam/globals';
+
+.app-body {
+  @include euiHeaderAffordForFixed;
+}
