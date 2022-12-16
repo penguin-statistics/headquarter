@@ -14,10 +14,55 @@ import {
   EuiTitle,
 } from '@elastic/eui'
 import { RecognitionDefect, useRecognitionDefectsQuery } from 'apis/penguin'
+import { DimensionImage } from 'components/DimensionImage'
 import { JSONViewer } from 'components/JSONViewer'
 import { FC, ReactNode, useState } from 'react'
 import { formatRelativeTime, formatTimeShort } from 'utils/times'
 import { formatTimeLong } from '../../utils/times'
+
+const ImageDownloadButton: FC<{ src: string; filename: string }> = ({
+  src,
+  filename,
+}) => {
+  const [loading, setLoading] = useState(false)
+
+  return (
+    <EuiButton
+      size="s"
+      color="primary"
+      fill
+      isLoading={loading}
+      iconType="download"
+      onClick={() => {
+        setLoading(true)
+
+        fetch(src, {
+          method: 'GET',
+          mode: 'cors',
+        })
+          .then((res) => res.blob())
+          .then((blob) => {
+            const url = URL.createObjectURL(blob)
+            // download the file
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `${filename}.jpg`
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+
+            // revoke the object url
+            URL.revokeObjectURL(url)
+          })
+          .finally(() => {
+            setLoading(false)
+          })
+      }}
+    >
+      Download
+    </EuiButton>
+  )
+}
 
 interface DefectFact {
   title: NonNullable<ReactNode>
@@ -120,7 +165,7 @@ const RecognitionDefectCardFlyout: FC<{
 
             <div className="flex">
               {item.image ? (
-                <img
+                <DimensionImage
                   src={item.image.original}
                   alt="original defect"
                   className="w-full bg-gray-200"
@@ -135,40 +180,10 @@ const RecognitionDefectCardFlyout: FC<{
 
             {item.image && (
               <div className="flex gap-2">
-                <EuiButton
-                  size="s"
-                  color="primary"
-                  fill
-                  iconType="download"
-                  onClick={() => {
-                    if (item.image) {
-                      const url = item.image.original
-                      fetch(url, {
-                        method: 'GET',
-                        headers: {
-                          'Content-Type': 'application/octet-stream',
-                        },
-                        mode: 'cors',
-                      })
-                        .then((res) => res.blob())
-                        .then((blob) => {
-                          const url = URL.createObjectURL(blob)
-                          // download the file
-                          const a = document.createElement('a')
-                          a.href = url
-                          a.download = `defect-${item.defectId}.jpg`
-                          document.body.appendChild(a)
-                          a.click()
-                          a.remove()
-
-                          // revoke the object url
-                          URL.revokeObjectURL(url)
-                        })
-                    }
-                  }}
-                >
-                  Download
-                </EuiButton>
+                <ImageDownloadButton
+                  src={item.image.original}
+                  filename={`defect-${item.defectId}`}
+                />
               </div>
             )}
           </div>
@@ -223,7 +238,7 @@ const RecognitionDefectCard: FC<{ item: RecognitionDefect }> = ({ item }) => {
     >
       <div className="flex h-full w-1/3 items-center bg-gray-200 object-contain">
         {item.image ? (
-          <img
+          <DimensionImage
             src={item.image.thumbnail}
             alt="thumbnail defect"
             className="h-full w-full bg-gray-200 object-contain"
