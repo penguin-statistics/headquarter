@@ -10,6 +10,7 @@ import {
   EuiFlyoutHeader,
   EuiPagination,
   EuiPanel,
+  EuiStat,
   EuiTitle,
 } from '@elastic/eui'
 import { RecognitionDefect, useRecognitionDefectsQuery } from 'apis/penguin'
@@ -62,6 +63,38 @@ const RecognitionDefectFactList: FC<{
   return <EuiDescriptionList listItems={facts} />
 }
 
+const RecognitionDefectBadges: FC<{ item: RecognitionDefect }> = ({ item }) => {
+  return (
+    <div className="flex w-full flex-col justify-start gap-4">
+      <div>
+        <EuiBadge color="default">
+          {formatRelativeTime(item.createdAt)}
+        </EuiBadge>
+
+        <EuiBadge color="hollow">{formatTimeShort(item.createdAt)}</EuiBadge>
+      </div>
+
+      <div>
+        <EuiBadge color="#a7f3d0">
+          Frontend:{' '}
+          <span className="font-mono">
+            {item.environment.frontendVersion} (
+            {item.environment.frontendCommit})
+          </span>
+        </EuiBadge>
+
+        <EuiBadge color="#ddd6fe">
+          Recognizer:{' '}
+          <span className="font-mono">
+            {item.environment.recognizerVersion} (
+            {item.environment.recognizerAssetsVersion})
+          </span>
+        </EuiBadge>
+      </div>
+    </div>
+  )
+}
+
 const RecognitionDefectCardFlyout: FC<{
   item: RecognitionDefect
   onClose: () => void
@@ -78,6 +111,8 @@ const RecognitionDefectCardFlyout: FC<{
       </EuiFlyoutHeader>
       <EuiFlyoutBody>
         <div className="flex flex-col gap-8">
+          <RecognitionDefectBadges item={item} />
+
           <div className="flex flex-col gap-4">
             <EuiTitle size="s">
               <h3>Original Image</h3>
@@ -98,11 +133,44 @@ const RecognitionDefectCardFlyout: FC<{
               )}
             </div>
 
-            <div className="flex gap-2">
-              <EuiButton size="s" color="primary" fill iconType="download">
-                Download
-              </EuiButton>
-            </div>
+            {item.image && (
+              <div className="flex gap-2">
+                <EuiButton
+                  size="s"
+                  color="primary"
+                  fill
+                  iconType="download"
+                  onClick={() => {
+                    if (item.image) {
+                      const url = item.image.original
+                      fetch(url, {
+                        method: 'GET',
+                        headers: {
+                          'Content-Type': 'application/octet-stream',
+                        },
+                        mode: 'cors',
+                      })
+                        .then((res) => res.blob())
+                        .then((blob) => {
+                          const url = URL.createObjectURL(blob)
+                          // download the file
+                          const a = document.createElement('a')
+                          a.href = url
+                          a.download = `defect-${item.defectId}.jpg`
+                          document.body.appendChild(a)
+                          a.click()
+                          a.remove()
+
+                          // revoke the object url
+                          URL.revokeObjectURL(url)
+                        })
+                    }
+                  }}
+                >
+                  Download
+                </EuiButton>
+              </div>
+            )}
           </div>
 
           <RecognitionDefectFactList
@@ -168,18 +236,10 @@ const RecognitionDefectCard: FC<{ item: RecognitionDefect }> = ({ item }) => {
         )}
       </div>
 
-      <div className="flex h-full w-full flex-col justify-start gap-4 p-4">
-        <div>
-          <EuiBadge color="default">
-            {formatRelativeTime(item.createdAt)}
-          </EuiBadge>
+      <div className="flex h-full w-2/3 flex-col items-start gap-4 p-4">
+        <RecognitionDefectBadges item={item} />
 
-          <EuiBadge color="hollow">{formatTimeShort(item.createdAt)}</EuiBadge>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <RecognitionDefectFactList item={item} />
-        </div>
+        <EuiStat title={item.environment.server} description="Server" />
       </div>
 
       {flyoutOpen && (
@@ -214,7 +274,7 @@ export const RecognitionDefects = () => {
         <EuiButton
           onClick={() => query.refetch()}
           iconType="refresh"
-          isLoading={query.isLoading}
+          isLoading={query.isFetching}
         >
           Refresh
         </EuiButton>
