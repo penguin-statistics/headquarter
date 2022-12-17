@@ -42,7 +42,10 @@ export const DimensionImage: FC<
   }, [imageRef.current])
 
   return (
-    <EuiToolTip content={dimensions ? dimensions : <EuiLoadingSpinner />}>
+    <EuiToolTip
+      content={dimensions ? dimensions : <EuiLoadingSpinner />}
+      anchorClassName="w-full h-full"
+    >
       <img src={src} alt={alt} {...props} ref={imageRef} />
     </EuiToolTip>
   )

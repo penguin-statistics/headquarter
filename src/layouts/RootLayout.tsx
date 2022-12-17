@@ -8,7 +8,7 @@ import {
   EuiPageTemplate,
   EuiSideNav,
 } from '@elastic/eui'
-import { ReactNode, useEffect, useMemo } from 'react'
+import { ReactNode, useEffect, useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate } from 'react-router-dom'
 import logo from '../assets/logo.png?url'
@@ -44,7 +44,7 @@ export function GlobalHeader() {
         <EuiHeaderSectionItem border="right">
           <EuiHeaderLogo
             iconType={() => (
-              <img src={logo} alt="logo" className="h-full w-full py-1" />
+              <img src={logo} alt="logo" className="h-full py-1" />
             )}
           >
             Headquarter
@@ -84,22 +84,38 @@ const routes = [
   },
 ]
 
-function RootContentLayout({ children }: { children: ReactNode }) {
+function RootContentLayoutSidebar() {
+  const [isSideNavOpenOnMobile, setIsSideNavOpenOnMobile] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
 
-  const createSideNavItem = (path: string, name: string) => ({
+  const sidebar = routes.map(({ path, name }) => ({
     id: path,
     name,
     isSelected: location.pathname === path,
     onClick: () => navigate(path),
-  })
+  }))
 
-  const sidebar = routes
-    .map(({ path, name }) => createSideNavItem(path, name))
-    .map((item) => {
-      return <EuiSideNav key={item.id} items={[item]} />
-    })
+  return (
+    <EuiSideNav
+      items={[
+        {
+          name: 'Headquarter',
+          id: 'headquarter',
+          items: sidebar,
+        },
+      ]}
+      mobileTitle="Navigation"
+      toggleOpenOnMobile={() =>
+        setIsSideNavOpenOnMobile(!isSideNavOpenOnMobile)
+      }
+      isOpenOnMobile={isSideNavOpenOnMobile}
+    />
+  )
+}
+
+function RootContentLayout({ children }: { children: ReactNode }) {
+  const location = useLocation()
 
   const currentRoute = useMemo(() => {
     return routes.find((route) => route.path === location.pathname)
@@ -108,7 +124,9 @@ function RootContentLayout({ children }: { children: ReactNode }) {
   return (
     <EuiPageTemplate panelled grow restrictWidth={false}>
       <GlobalHeader />
-      <EuiPageTemplate.Sidebar sticky>{sidebar}</EuiPageTemplate.Sidebar>
+      <EuiPageTemplate.Sidebar sticky>
+        <RootContentLayoutSidebar />
+      </EuiPageTemplate.Sidebar>
       <EuiPageTemplate.Header
         pageTitle={currentRoute?.name}
         iconType={currentRoute?.iconType}

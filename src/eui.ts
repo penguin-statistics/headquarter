@@ -3,6 +3,7 @@ import { ValuesType } from 'utility-types'
 
 import { appendIconComponentCache } from '@elastic/eui/es/components/icon/icon'
 
+import { icon as apps } from '@elastic/eui/es/components/icon/assets/apps'
 import { icon as dashboardApp } from '@elastic/eui/es/components/icon/assets/app_dashboard'
 import { icon as arrowEnd } from '@elastic/eui/es/components/icon/assets/arrowEnd'
 import { icon as arrowStart } from '@elastic/eui/es/components/icon/assets/arrowStart'
@@ -46,6 +47,7 @@ const cachedIcons: IconComponentCacheType = {
   arrowStart,
   inspect,
   exit,
+  apps,
 }
 
 appendIconComponentCache(cachedIcons)

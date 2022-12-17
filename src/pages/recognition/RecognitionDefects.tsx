@@ -8,15 +8,18 @@ import {
   EuiFlyout,
   EuiFlyoutBody,
   EuiFlyoutHeader,
+  EuiLoadingSpinner,
   EuiPagination,
   EuiPanel,
   EuiStat,
+  EuiText,
   EuiTitle,
+  EuiToolTip,
 } from '@elastic/eui'
 import { RecognitionDefect, useRecognitionDefectsQuery } from 'apis/penguin'
 import { DimensionImage } from 'components/DimensionImage'
 import { JSONViewer } from 'components/JSONViewer'
-import { FC, ReactNode, useState } from 'react'
+import { FC, ReactNode, useEffect, useState } from 'react'
 import { formatRelativeTime, formatTimeShort } from 'utils/times'
 import { formatTimeLong } from '../../utils/times'
 
@@ -30,7 +33,6 @@ const ImageDownloadButton: FC<{ src: string; filename: string }> = ({
     <EuiButton
       size="s"
       color="primary"
-      fill
       isLoading={loading}
       iconType="download"
       onClick={() => {
@@ -61,6 +63,71 @@ const ImageDownloadButton: FC<{ src: string; filename: string }> = ({
     >
       Download
     </EuiButton>
+  )
+}
+
+const DebugImageRender: FC<{ src: string; onClose: () => void }> = ({
+  src,
+  onClose,
+}) => {
+  const [state, setState] = useState<'loading' | 'loaded' | 'error'>('loading')
+
+  const content = (() => {
+    switch (state) {
+      case 'loading':
+        return <EuiLoadingSpinner title="Rendering..." size="xl" />
+      case 'loaded':
+        return <img src={src} alt="debug" />
+      case 'error':
+        return <EuiText>Error</EuiText>
+    }
+  })()
+
+  useEffect(() => {
+    fetch(src, {
+      method: 'GET',
+      mode: 'cors',
+    }).then((res) => res.arrayBuffer())
+  }, [src])
+
+  return (
+    <EuiFlyout onClose={onClose} size="l">
+      <EuiFlyoutHeader hasBorder>
+        <div className="caption mb-1 font-mono tracking-wide">
+          <h6>{src}</h6>
+        </div>
+        <EuiTitle size="m">
+          <h2>Debug Image</h2>
+        </EuiTitle>
+      </EuiFlyoutHeader>
+
+      <EuiFlyoutBody>{content}</EuiFlyoutBody>
+    </EuiFlyout>
+  )
+}
+
+const DebugImageRenderButton: FC<{ src: string }> = ({ src }) => {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <>
+      <EuiToolTip content="Under development..." position="bottom">
+        <EuiButton
+          size="s"
+          color="primary"
+          fill
+          iconType="inspect"
+          disabled
+          onClick={() => {
+            setOpen(true)
+          }}
+        >
+          Render Debug Image
+        </EuiButton>
+      </EuiToolTip>
+
+      {open && <DebugImageRender src={src} onClose={() => setOpen(false)} />}
+    </>
   )
 }
 
@@ -179,7 +246,9 @@ const RecognitionDefectCardFlyout: FC<{
             </div>
 
             {item.image && (
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                <DebugImageRenderButton src={item.image.original} />
+
                 <ImageDownloadButton
                   src={item.image.original}
                   filename={`defect-${item.defectId}`}
@@ -232,11 +301,11 @@ const RecognitionDefectCard: FC<{ item: RecognitionDefect }> = ({ item }) => {
 
   return (
     <EuiPanel
-      className="!flex h-[20rem] w-full items-center overflow-hidden text-left"
+      className="!flex w-full flex-col items-center overflow-hidden text-left md:h-[20rem] md:flex-row"
       paddingSize="none"
       onClick={() => setFlyoutOpen(true)}
     >
-      <div className="flex h-full w-1/3 items-center bg-gray-200 object-contain">
+      <div className="flex h-full w-full items-center bg-gray-200 object-contain md:w-1/3">
         {item.image ? (
           <DimensionImage
             src={item.image.thumbnail}
@@ -245,13 +314,13 @@ const RecognitionDefectCard: FC<{ item: RecognitionDefect }> = ({ item }) => {
             loading="lazy"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center">
+          <div className="flex h-full w-full items-center justify-center py-16">
             <span className="text-gray-400">No Image</span>
           </div>
         )}
       </div>
 
-      <div className="flex h-full w-2/3 flex-col items-start gap-4 p-4">
+      <div className="flex h-full w-full flex-col items-start gap-4 p-4 md:w-2/3">
         <RecognitionDefectBadges item={item} />
 
         <EuiStat title={item.environment.server} description="Server" />
@@ -277,7 +346,7 @@ export const RecognitionDefects = () => {
   const pagination = (
     <div className="flex items-center gap-2">
       <span className="tabular-nums">
-        pageIndex={page} (Page {page + 1})
+        Page {page + 1} <span className="text-xs">(idx={page})</span>
       </span>
       <EuiPagination pageCount={0} activePage={page} onPageClick={setPage} />
     </div>
